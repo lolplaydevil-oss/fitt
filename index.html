@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="theme-color" content="#1b1035">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>FitBoss — Победи босса</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,Segoe UI,Roboto,sans-serif}
+body{background:linear-gradient(#1b1035,#0d0820);color:#fff;min-height:100vh;padding-bottom:80px}
+header{padding:14px;text-align:center;font-size:22px;font-weight:800;letter-spacing:1px}
+header span{color:#ffcc33}
+.wrap{max-width:520px;margin:auto;padding:0 12px}
+.card{background:#ffffff12;border:1px solid #ffffff22;border-radius:16px;padding:14px;margin:10px 0}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.stat{background:#ffffff10;border-radius:12px;padding:10px}
+.stat b{font-size:24px;display:block}
+.str b{color:#ff6b6b}.agi b{color:#4ecdc4}.int b{color:#a29bfe}
+.bar{height:14px;background:#0006;border-radius:7px;overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#ff3b3b,#ff9f43);transition:width .6s}
+.boss{font-size:80px;text-align:center;transition:transform .2s}
+.boss.hit{transform:scale(.85) rotate(-8deg);filter:brightness(2)}
+button{border:0;border-radius:12px;padding:12px;font-size:16px;font-weight:700;cursor:pointer;width:100%;color:#fff;background:#6c5ce7;margin-top:8px}
+button:disabled{background:#555;color:#999}
+.btn-atk{background:linear-gradient(90deg,#ff3b3b,#ff9f43);font-size:20px;padding:16px}
+.row{display:flex;gap:8px;align-items:center;margin:8px 0}
+.row label{flex:1}
+input,select{background:#0005;border:1px solid #fff3;color:#fff;border-radius:10px;padding:10px;font-size:16px;width:100%}
+.small{font-size:13px;opacity:.75}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#120a28;border-top:1px solid #fff2}
+nav button{background:none;margin:0;border-radius:0;font-size:13px;padding:10px 0}
+nav button.on{color:#ffcc33}
+.list .b{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;margin:4px 0;background:#ffffff0a}
+.list .b .e{font-size:34px}
+.lock{opacity:.45}
+.ok{color:#2ecc71}.no{color:#ff6b6b}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#ffcc33;color:#000;padding:10px 18px;border-radius:12px;font-weight:700;display:none;z-index:9;max-width:90%;text-align:center}
+.q{font-size:30px;text-align:center;margin:10px 0;font-weight:800}
+.dmg{position:absolute;left:50%;top:40%;font-size:36px;font-weight:900;color:#ffcc33;animation:fly 1.2s forwards;pointer-events:none}
+@keyframes fly{to{transform:translate(-50%,-90px);opacity:0}}
+.page{display:none}.page.on{display:block}
+.overlay{position:fixed;inset:0;background:#0d0820;z-index:20;overflow:auto;display:none;padding-bottom:20px}
+.overlay.show{display:block}
+.center.show{display:flex;align-items:center;justify-content:center;background:#000d;padding:16px}
+.mbox{max-width:420px;text-align:center;animation:pop .4s}
+@keyframes pop{from{transform:scale(.5);opacity:0}}
+.quote{font-size:18px;font-style:italic;margin:12px 0;line-height:1.4;color:#ffe9a8}
+.avgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.av{font-size:28px;text-align:center;padding:6px 0;border-radius:10px;background:#ffffff0a;cursor:pointer;border:2px solid transparent}
+.av.sel{border-color:#ffcc33;background:#ffcc3322}
+.vs{display:flex;align-items:center;justify-content:center;gap:12px}
+.vs>span{font-weight:900;color:#ffcc33}
+.hero{font-size:56px}
+.hero.atk{animation:lunge .3s}
+@keyframes lunge{50%{transform:translateX(40px) scale(1.2)}}
+header{position:relative}
+header .me{position:absolute;left:10px;top:12px;font-size:14px;color:#fff;cursor:pointer;background:#ffffff15;padding:4px 8px;border-radius:10px;max-width:32%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;letter-spacing:0;font-weight:600}
+.mus{position:absolute;right:10px;top:8px;width:auto;margin:0;padding:4px 10px;background:#ffffff15;font-size:18px}
+.pl{display:flex;align-items:center;gap:10px;padding:8px;background:#ffffff0a;border-radius:10px;margin:6px 0}
+.pl .e{font-size:32px}
+.pl button{width:auto;margin:0;padding:8px 14px}
+.rank{width:30px;font-weight:900;color:#ffcc33;text-align:center}
+textarea{background:#0005;border:1px solid #fff3;color:#fff;border-radius:10px;padding:10px;font-size:14px;width:100%;min-height:60px;margin-top:8px}
+.adm{border:1px solid #e67e22}
+.row label{display:flex;align-items:center;gap:4px}
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyD-QLKuVDA1ZggSECd-5vdOB9Uf3CqRlbo",
+    authDomain: "fitboss-e279e.firebaseapp.com",
+    databaseURL: "https://fitboss-e279e-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "fitboss-e279e",
+    storageBucket: "fitboss-e279e.firebasestorage.app",
+    messagingSenderId: "984174106283",
+    appId: "1:984174106283:web:c208b8b329d50f3c4649ee",
+    measurementId: "G-CSSCZX5N6R"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
+<header><span class="me" id="me" onclick="showProf()"></span>FIT<span>BOSS</span><button class="mus" id="mus" onclick="toggleMusic()">🔊</button></header>
+<div class="toast" id="toast"></div>
+
+<!-- ВХОД -->
+<div id="prof" class="overlay"><div class="wrap">
+ <header>FIT<span>BOSS</span></header>
+ <div class="card"><h3>🔐 Вход</h3><p class="small no" id="authMsg"></p>
+  <input id="lLogin" placeholder="Логин (латиница, цифры, _)" autocomplete="username" maxlength="16" autocapitalize="none">
+  <input id="lPass" type="password" placeholder="Пароль (минимум 6 символов)" autocomplete="current-password" style="margin-top:8px">
+  <button onclick="doLogin()">Войти</button>
+ </div>
+ <div class="card"><h3>➕ Регистрация</h3><p class="small">Введи логин и пароль выше, затем имя героя и аватар.</p>
+  <input id="newName" placeholder="Имя героя" maxlength="16">
+  <div class="small" style="margin:8px 0">Аватар: <b id="avName"></b></div>
+  <div class="avgrid" id="avGrid"></div>
+  <button onclick="doRegister()" style="background:#00b894">Создать аккаунт</button>
+ </div>
+</div></div>
+
+<!-- ПОБЕДА НАД БОССОМ -->
+<div id="modal" class="overlay center"><div class="card mbox">
+ <div class="boss" id="mEmoji"></div><h2 id="mTitle"></h2>
+ <p class="quote" id="mText"></p>
+ <button onclick="closeModal()">💪 Вперёд!</button>
+</div></div>
+<div class="wrap">
+
+<div class="card stats">
+ <div class="stat str">💪 Сила<b id="sStr">0</b></div>
+ <div class="stat agi">⚡ Ловкость<b id="sAgi">0</b></div>
+ <div class="stat int">🧠 Интеллект<b id="sInt">0</b></div>
+</div>
+
+<!-- БОЙ -->
+<div class="page on" id="p-fight">
+ <div class="card" style="position:relative" id="arena">
+  <div class="small" id="bLvl"></div>
+  <h2 id="bName"></h2>
+  <div class="vs"><div class="hero" id="heroAv"></div><span>VS</span><div class="boss" id="bEmoji"></div></div>
+  <div class="bar"><i id="bHp"></i></div>
+  <div class="small" id="bHpTxt"></div>
+  <div class="small" id="dmgInfo" style="margin-top:6px"></div>
+  <button class="btn-atk" id="atkBtn" onclick="attack()">⚔️ АТАКОВАТЬ</button>
+  <div class="small" id="atkNote" style="text-align:center;margin-top:6px"></div>
+ </div>
+</div>
+
+<!-- ТРЕНИРОВКА -->
+<div class="page" id="p-train">
+ <div class="card">
+  <h3>🏋️ Записать тренировку</h3>
+  <p class="small">Сделай упражнение в реальной жизни и запиши результат. Лимит в день: +10 к каждой характеристике.</p>
+  <div class="row"><select id="ex"></select></div>
+  <div class="row"><input type="number" id="amount" min="1" placeholder="Количество"><span id="unit" class="small" style="width:70px"></span></div>
+  <div class="small" id="exPreview"></div>
+  <button onclick="logEx()">✅ Готово</button>
+ </div>
+ <div class="card"><h3>Сегодня</h3><div id="today" class="small"></div></div>
+ <div class="card"><h3>История</h3><div id="hist" class="small"></div></div>
+</div>
+
+<!-- ГОЛОВОЛОМКИ -->
+<div class="page" id="p-puzzle">
+ <div class="card">
+  <h3>🧩 Головоломки</h3>
+  <p class="small">Каждый правильный ответ: +1 к интеллекту (до 10 в день). Ошибка — новая задача.</p>
+  <div class="small" id="pType"></div>
+  <div class="q" id="pQ"></div>
+  <input type="text" id="pA" inputmode="numeric" placeholder="Ответ">
+  <button onclick="checkP()">Ответить</button>
+  <button style="background:#444" onclick="newP()">Пропустить</button>
+ </div>
+</div>
+
+<!-- БОССЫ -->
+<div class="page" id="p-bosses">
+ <div class="card list" id="bossList"></div>
+ <div class="card"><button style="background:#b33" onclick="showProf()">🚪 Выйти из аккаунта</button></div>
+</div>
+
+<!-- ДРУЗЬЯ И ЛИДЕРЫ -->
+<div class="page" id="p-friends">
+ <div class="card"><h3>🏆 Таблица лидеров</h3><div id="board"></div>
+  <button style="background:#444" onclick="loadBoard()">🔄 Обновить</button>
+  <p class="small">Онлайн-таблица всех игроков. Очки = побеждённые боссы × 1000 + весь нанесённый урон + сумма характеристик × 10. Позови друзей: пусть зарегистрируются в игре.</p></div>
+ <div class="card"><h3>🎭 Сменить аватар</h3><div class="avgrid" id="avGrid2"></div></div>
+</div>
+</div>
+
+<!-- АДМИН -->
+<div class="page" id="p-admin">
+ <div class="card adm"><h3>🛡️ Тест боссов</h3><p class="small">Для администратора нет требований к характеристикам и лимита в одну атаку в день.</p>
+  <select id="admBoss"></select>
+  <button onclick="admJump()">⚔️ Перейти к боссу</button>
+  <button onclick="admKill()" style="background:#e67e22">💀 Мгновенно победить текущего босса</button>
+  <button onclick="admRestore()" style="background:#444">❤️ Восстановить здоровье босса</button>
+ </div>
+ <div class="card adm"><h3>👥 Управление игроками</h3><button style="background:#444" onclick="loadBoard()">🔄 Обновить список</button><div id="admList"></div></div>
+</div>
+
+<nav>
+ <button class="on" onclick="go('fight',this)">⚔️<br>Бой</button>
+ <button onclick="go('train',this)">🏋️<br>Тренировка</button>
+ <button onclick="go('puzzle',this)">🧩<br>Задачи</button>
+ <button onclick="go('bosses',this)">👹<br>Боссы</button>
+ <button onclick="go('friends',this)">🏆<br>Лидеры</button>
+ <button id="navAdm" style="display:none" onclick="go('admin',this)">🛡️<br>Админ</button>
+</nav>
+
+<script>
+const BOSSES=[
+ ["Ленивый Слизень","🐌"],["Диванный Тролль","🧌"],["Гоблин Фастфуда","👺"],["Скелет Сутулости","💀"],
+ ["Призрак Прокрастинации","👻"],["Огр Одышки","👹"],["Робот Рутины","🤖"],["Дракон Усталости","🐉"],
+ ["Демон Отговорок","😈"],["Король Лени","👑"]
+].map((b,i)=>{const l=i+1;return{lvl:l,name:b[0],emoji:b[1],
+ hp:Math.round(150*Math.pow(l,1.7)),
+ req:{str:(l-1)*10,agi:(l-1)*10,int:(l-1)*6}}});
+
+const EX={
+ pushups:{n:"Отжимания",u:"раз",stat:"str",per:10},
+ squats:{n:"Приседания",u:"раз",stat:"str",per:15},
+ pullups:{n:"Подтягивания",u:"раз",stat:"str",per:4},
+ plank:{n:"Планка",u:"сек",stat:"str",per:60},
+ run:{n:"Бег",u:"км",stat:"agi",per:0.5},
+ jacks:{n:"Прыжки «Джек»",u:"раз",stat:"agi",per:30},
+ burpees:{n:"Бёрпи",u:"раз",stat:"agi",per:8},
+ rope:{n:"Скакалка",u:"мин",stat:"agi",per:3},
+};
+const CAP=10;
+const today=()=>new Date().toISOString().slice(0,10);
+// ===== НАСТРОЙКИ FIREBASE: вставь сюда данные своего проекта =====
+const FB_CONFIG={
+ apiKey:"AIzaSyD-QLKuVDA1ZggSECd-5vdOB9Uf3CqRlbo",
+ authDomain:"fitboss-e279e.firebaseapp.com",
+ projectId:"fitboss-e279e",
+ appId:"1:984174106283:web:c208b8b329d50f3c4649ee"
+};
+const ADMIN_LOGIN="admin";
+const FB_ON=!!FB_CONFIG.apiKey&&!!window.firebase;
+let auth=null,fs=null;
+if(FB_ON){firebase.initializeApp(FB_CONFIG);auth=firebase.auth();fs=firebase.firestore();fs.enablePersistence().catch(()=>{})}
+const toEmail=l=>l.toLowerCase()+"@fitboss.game";
+function newPlayer(id,login,name,av){return{id,login,name,avatar:av,adminRev:0,str:0,agi:0,int:0,boss:0,hp:BOSSES[0].hp,lastAtk:"",day:"",gain:{str:0,agi:0,int:0},hist:[],won:false,totalDmg:0}}
+let DB={music:localStorage.getItem("fitboss_music")!=="0"};
+let S=null,isAdm=false,saveT=null;
+function save(){localStorage.setItem("fitboss_music",DB.music?"1":"0");if(!S)return;S.score=score(S);clearTimeout(saveT);saveT=setTimeout(pushCloud,700)}
+function pushCloud(){if(!fs||!S)return;const d=JSON.parse(JSON.stringify(S));delete d.id;fs.collection("users").doc(S.id).set(d,{merge:true}).catch(e=>toast("Ошибка сохранения: "+e.code))}
+function rollDay(){if(S.day!==today()){S.day=today();S.gain={str:0,agi:0,int:0};save()}}
+function toast(t){const e=document.getElementById("toast");e.textContent=t;e.style.display="block";clearTimeout(e._t);e._t=setTimeout(()=>e.style.display="none",2500)}
+function $(id){return document.getElementById(id)}
+function canFight(b){return isAdm||S.str>=b.req.str&&S.agi>=b.req.agi&&S.int>=b.req.int}
+function dmgRange(){const base=10+S.str*2+S.agi*1.2+S.int*1;return[Math.round(base*.8),Math.round(base*1.2)]}
+function critChance(){return Math.min(0.05+S.agi*0.004,0.5)}
+
+function addStat(st,v){rollDay();const room=CAP-S.gain[st];const add=Math.max(0,Math.min(room,v));S[st]+=add;S.gain[st]+=add;save();if(add>0)sfxUp();return add}
+
+function render(){
+ if(!S)return;rollDay();renderExtra();
+ $("sStr").textContent=S.str;$("sAgi").textContent=S.agi;$("sInt").textContent=S.int;
+ const b=BOSSES[S.boss];
+ if(S.won){$("bLvl").textContent="ИГРА ПРОЙДЕНА";$("bName").textContent="Ты победил Короля Лени!";$("bEmoji").textContent="🏆";
+  $("bHp").style.width="0";$("bHpTxt").textContent="Ты стал сильным и ловким!";$("atkBtn").disabled=true;$("atkNote").textContent="";$("dmgInfo").textContent="";}
+ else{
+  $("bLvl").textContent="Уровень "+b.lvl+" / 10";$("bName").textContent=b.name;$("bEmoji").textContent=b.emoji;
+  $("bHp").style.width=(S.hp/b.hp*100)+"%";$("bHpTxt").textContent="❤️ "+S.hp+" / "+b.hp;
+  const [a,c]=dmgRange();$("dmgInfo").textContent="Твой урон: "+a+"–"+c+" | Шанс крита: "+Math.round(critChance()*100)+"%";
+  const ok=canFight(b),done=S.lastAtk===today()&&!isAdm;
+  $("atkBtn").disabled=!ok||done;
+  $("atkNote").innerHTML=!ok?`<span class="no">Нужно: 💪${b.req.str} ⚡${b.req.agi} 🧠${b.req.int}</span>`:done?"Ты уже атаковал сегодня. Возвращайся завтра! 💤":"Одна атака в день";
+ }
+ $("today").innerHTML=`💪 +${S.gain.str}/${CAP} &nbsp; ⚡ +${S.gain.agi}/${CAP} &nbsp; 🧠 +${S.gain.int}/${CAP}`;
+ $("hist").innerHTML=S.hist.slice(-15).reverse().map(h=>`<div>${h}</div>`).join("")||"Пока пусто";
+ $("bossList").innerHTML="<h3>Боссы</h3>"+BOSSES.map((x,i)=>{const st=i<S.boss||S.won?"✅":i===S.boss?"⚔️":"🔒";
+  const r=k=>`<span class="${S[k]>=x.req[k]?'ok':'no'}">${x.req[k]}</span>`;
+  return `<div class="b ${i>S.boss&&!S.won?'lock':''}"><div class="e">${x.emoji}</div><div style="flex:1"><b>${x.lvl}. ${x.name}</b> ${st}<br><span class="small">❤️${x.hp} | 💪${r('str')} ⚡${r('agi')} 🧠${r('int')}</span></div></div>`}).join("");
+}
+
+function attack(){
+ const b=BOSSES[S.boss];if(S.won||!canFight(b)||(S.lastAtk===today()&&!isAdm))return;
+ const [a,c]=dmgRange();let d=a+Math.floor(Math.random()*(c-a+1));const crit=Math.random()<critChance();if(crit)d*=2;
+ S.hp=Math.max(0,S.hp-d);S.lastAtk=today();S.hist.push(`${today()}: удар по «${b.name}» −${d}${crit?" (КРИТ!)":""}`);
+ const e=$("bEmoji");e.classList.add("hit");setTimeout(()=>e.classList.remove("hit"),250);
+ const f=document.createElement("div");f.className="dmg";f.textContent=(crit?"💥":"")+"-"+d;$("arena").appendChild(f);setTimeout(()=>f.remove(),1200);
+ if(navigator.vibrate)navigator.vibrate(crit?[100,50,100]:80);
+ sfxHit(crit);S.totalDmg=(S.totalDmg||0)+d;
+ const h=$("heroAv");h.classList.add("atk");setTimeout(()=>h.classList.remove("atk"),300);
+ if(S.hp===0)setTimeout(()=>{bossDefeated(b);save();render()},700);
+ save();setTimeout(render,300);
+}
+
+function fillEx(){$("ex").innerHTML=Object.entries(EX).map(([k,v])=>`<option value="${k}">${v.stat==="str"?"💪":"⚡"} ${v.n}</option>`).join("");updEx()}
+function updEx(){const e=EX[$("ex").value];$("unit").textContent=e.u;const v=parseFloat($("amount").value)||0;
+ $("exPreview").textContent=`1 очко за каждые ${e.per} ${e.u}. Будет: +${Math.floor(v/e.per)} к ${e.stat==="str"?"силе":"ловкости"}`}
+function logEx(){const k=$("ex").value,e=EX[k],v=parseFloat($("amount").value);
+ if(!v||v<=0||v>10000)return toast("Введи корректное число");
+ const pts=Math.floor(v/e.per);if(pts<1)return toast(`Нужно минимум ${e.per} ${e.u}`);
+ const add=addStat(e.stat,pts);S.hist.push(`${today()}: ${e.n} ${v} ${e.u} → +${add} ${e.stat==="str"?"💪":"⚡"}`);save();
+ toast(add>0?`+${add} ${e.stat==="str"?"💪 Сила":"⚡ Ловкость"}!`:"Дневной лимит достигнут 👍");$("amount").value="";updEx();render()}
+
+let P=null;const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+function newP(){const lvl=Math.min(1+Math.floor((S?S.int:0)/10),6);const t=rnd(0,3);
+ if(t===0){const a=rnd(5,20*lvl),b=rnd(5,20*lvl),op=["+","-","×"][rnd(0,2)];P={type:"Арифметика",q:`${a} ${op} ${b} = ?`,a:op==="+"?a+b:op==="-"?a-b:a*b}}
+ else if(t===1){const s=rnd(1,10),d=rnd(2,3+lvl);const geo=Math.random()<.3;const arr=[];let x=s;for(let i=0;i<5;i++){arr.push(x);x=geo?x*2:x+d}
+  P={type:"Продолжи ряд",q:arr.slice(0,4).join(", ")+", ?",a:arr[4]}}
+ else if(t===2){const x=rnd(2,12),k=rnd(2,9),b=rnd(1,30);P={type:"Найди x",q:`${k}x + ${b} = ${k*x+b}`,a:x}}
+ else{const a=rnd(2,9),b=rnd(2,9),c=rnd(1,9);P={type:"Порядок действий",q:`${a} + ${b} × ${c} = ?`,a:a+b*c}}
+ $("pType").textContent=P.type;$("pQ").textContent=P.q;$("pA").value=""}
+function checkP(){const v=parseInt($("pA").value);if(isNaN(v))return;
+ if(v===P.a){const add=addStat("int",1);toast(add?"✅ Верно! +1 🧠":"✅ Верно! (лимит на сегодня)");if(add)S.hist.push(`${today()}: головоломка → +1 🧠`);save();render()}
+ else{sfxBad();toast("❌ Неверно, ответ: "+P.a)}newP()}
+
+function go(p,btn){document.querySelectorAll(".page").forEach(e=>e.classList.remove("on"));$("p-"+p).classList.add("on");
+ document.querySelectorAll("nav button").forEach(e=>e.classList.remove("on"));btn.classList.add("on");render();if(p==="friends"||p==="admin")loadBoard()}
+$("ex").onchange=updEx;$("amount").oninput=updEx;$("pA").onkeydown=e=>{if(e.key==="Enter")checkP()};
+
+// PWA manifest (для установки на главный экран)
+const mf={name:"FitBoss",short_name:"FitBoss",start_url:".",display:"standalone",background_color:"#1b1035",theme_color:"#1b1035",
+ icons:[{src:"data:image/svg+xml,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="#1b1035"/><text x="50" y="68" font-size="60" text-anchor="middle">⚔️</text></svg>'),sizes:"512x512",type:"image/svg+xml"}]};
+const l=document.createElement("link");l.rel="manifest";l.href="data:application/json,"+encodeURIComponent(JSON.stringify(mf));document.head.appendChild(l);
+
+// ===== АВАТАРЫ =====
+const AVATARS=[["🦸","Супергерой"],["🦸‍♀️","Супергероиня"],["🥷","Ниндзя"],["🧙","Маг"],["🧝","Эльф"],["🧛","Вампир"],["🧟","Зомби-атлет"],["🤺","Фехтовальщик"],["🏋️","Тяжелоатлет"],["🤸","Гимнаст"],
+["🏃","Бегун"],["🚴","Велосипедист"],["🏊","Пловец"],["🥊","Боксёр"],["🦁","Лев"],["🐯","Тигр"],["🐺","Волк"],["🦅","Орёл"],["🐻","Медведь"],["🦍","Горилла"],
+["🐉","Дракон"],["🦊","Лис"],["🐼","Панда кунг-фу"],["🦈","Акула"],["🐆","Гепард"],["🤖","Киборг"],["👽","Пришелец"],["🧞","Джинн"],["🦄","Единорог"],["🦖","Тирекс"]];
+
+// ===== ФРАЗЫ БОССОВ =====
+const PHRASES=[
+"Ты победил меня... Но это только начало! Каждое отжимание делает тебя сильнее. Не останавливайся!",
+"Диван больше не держит тебя! Вставай и завтра, и мир увидит нового тебя!",
+"Ты выбрал силу, а не бургер. Тело скажет тебе спасибо, продолжай!",
+"Спина прямая, дух крепкий! Держи осанку: впереди битвы посерьёзнее.",
+"Ты не отложил на завтра, ты сделал сегодня! Именно так рождаются чемпионы.",
+"Дыхание ровное, сердце сильное! Беги дальше: финиш ближе, чем кажется.",
+"Ты сломал мою программу! Привычка тренироваться теперь твоя суперсила.",
+"Даже усталость отступила! Помни: ты сильнее всего, когда хочешь сдаться, но продолжаешь.",
+"Отговорок больше нет, есть только результаты! Последний бой ждёт тебя.",
+"Ты победил Короля Лени, то есть себя вчерашнего! Теперь ты сильный, ловкий и умный. Не теряй форму, герой!"];
+
+// ===== ЗВУК =====
+let AC=null,master=null,musicTimer=null;
+function ac(){if(!AC){const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;AC=new C();master=AC.createGain();master.gain.value=.5;master.connect(AC.destination)}if(AC.state==="suspended")AC.resume();return AC}
+function tone(f,t,dur,type,vol){const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.05)}
+function sweep(f1,f2,t,dur,type,vol){const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f1,t);o.frequency.exponentialRampToValueAtTime(f2,t+dur);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.05)}
+function noise(t,dur,vol,hp){const b=AC.createBuffer(1,Math.floor(AC.sampleRate*dur),AC.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+ const s=AC.createBufferSource();s.buffer=b;const f=AC.createBiquadFilter();f.type=hp?"highpass":"lowpass";f.frequency.value=hp||1200;const g=AC.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);s.connect(f);f.connect(g);g.connect(master);s.start(t)}
+function sfxHit(crit){if(!AC)return;const t=AC.currentTime;noise(t,.2,.8,0);sweep(220,40,t,.25,"square",.25);
+ if(crit){noise(t+.05,.3,.4,3000);[880,1175,1568].forEach((f,k)=>tone(f,t+.08+k*.06,.25,"triangle",.15))}}
+function sfxUp(){if(!AC)return;const t=AC.currentTime;[523,659,784].forEach((f,k)=>tone(f,t+k*.07,.15,"triangle",.15))}
+function sfxBad(){if(!AC)return;sweep(200,90,AC.currentTime,.35,"sawtooth",.12)}
+function sfxWin(){if(!AC)return;const t=AC.currentTime;sweep(400,30,t,.9,"sawtooth",.2);noise(t,.6,.5,0);
+ [523,659,784,1047,784,1047].forEach((f,k)=>tone(f,t+.8+k*.15,k===5?.8:.3,"square",.08))}
+
+// Музыкальные темы: у каждого босса свой темп, лад, тембр и мелодия
+const THEMES=[
+{bpm:80,root:220,sc:[0,3,5,7,10],w:"sine"},{bpm:92,root:196,sc:[0,2,3,7,8],w:"triangle"},
+{bpm:112,root:262,sc:[0,4,7,9,12],w:"square"},{bpm:100,root:147,sc:[0,1,5,7,8],w:"triangle"},
+{bpm:72,root:233,sc:[0,3,6,9,11],w:"sine"},{bpm:120,root:110,sc:[0,3,5,6,7],w:"sawtooth"},
+{bpm:132,root:165,sc:[0,2,4,7,9],w:"square"},{bpm:126,root:123,sc:[0,1,4,5,7,8],w:"sawtooth"},
+{bpm:140,root:139,sc:[0,1,3,6,7,10],w:"sawtooth"},{bpm:152,root:98,sc:[0,3,5,7,10,12],w:"square"},
+{bpm:120,root:262,sc:[0,4,7,12,16],w:"triangle"}];
+function seed(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function startMusic(){stopMusic();if(!DB.music||!AC||!S)return;const i=S.won?10:S.boss,th=THEMES[i],r=seed(i*13+7);
+ const mel=Array.from({length:16},()=>r()<.7?th.sc[Math.floor(r()*th.sc.length)]+(r()<.2?12:0):null);
+ const sp=60/th.bpm/2,trs=[0,5,0,7],fr=n=>th.root*Math.pow(2,n/12),mv=th.w==="sine"||th.w==="triangle"?.1:.04;
+ let next=AC.currentTime+.1,step=0;
+ musicTimer=setInterval(()=>{while(next<AC.currentTime+.3){const s=step%16,tr=trs[Math.floor(step/16)%4];
+  if(mel[s]!=null)tone(fr(mel[s]+tr),next,sp*.9,th.w,mv);
+  if(s%4===0)tone(fr(tr-12),next,sp*3,"triangle",.15);
+  if(i>=2&&s%4===0)sweep(150,40,next,.15,"sine",.4);
+  if(i>=5&&s%4===2)noise(next,.05,.08,6000);
+  next+=sp;step++}},100)}
+function stopMusic(){clearInterval(musicTimer);musicTimer=null}
+function toggleMusic(){ac();DB.music=!DB.music;save();DB.music?startMusic():stopMusic();renderExtra()}
+
+// ===== ПОБЕДА НАД БОССОМ =====
+function bossDefeated(b){const i=b.lvl-1;stopMusic();sfxWin();
+ if(i===9)S.won=true;else{S.boss++;S.hp=BOSSES[S.boss].hp}
+ S.hist.push(`${today()}: 🏅 побеждён «${b.name}»`);
+ $("mEmoji").textContent=b.emoji;$("mTitle").textContent=i===9?"🏆 ИГРА ПРОЙДЕНА!":b.name+" повержен!";
+ $("mText").textContent="«"+PHRASES[i]+"»";$("modal").classList.add("show");speak(PHRASES[i])}
+function speak(t){if(!("speechSynthesis" in window))return;const u=new SpeechSynthesisUtterance(t);u.lang="ru-RU";u.rate=.95;u.pitch=.6;
+ const v=speechSynthesis.getVoices().find(v=>v.lang.startsWith("ru"));if(v)u.voice=v;speechSynthesis.cancel();setTimeout(()=>speechSynthesis.speak(u),1200)}
+function closeModal(){$("modal").classList.remove("show");if("speechSynthesis" in window)speechSynthesis.cancel();startMusic()}
+
+// ===== АККАУНТЫ =====
+let selAv=0,unsubMe=null,allUsers=[],pendingReg=null;
+const esc=s=>String(s).replace(/[&<>"']/g,c=>"&#"+c.charCodeAt(0)+";");
+function avGrid(id,cur,fn){$(id).innerHTML=AVATARS.map((a,i)=>`<div class="av ${i===cur?'sel':''}" title="${a[1]}" onclick="${fn}(${i})">${a[0]}</div>`).join("")}
+function pickAv(i){selAv=i;$("avName").textContent=AVATARS[i][0]+" "+AVATARS[i][1];avGrid("avGrid",i,"pickAv")}
+function changeAv(i){S.avatar=i;save();render();toast("Новый аватар: "+AVATARS[i][1])}
+function showProf(){if(S&&confirm(`Выйти из аккаунта «${S.name}»?`))logout()}
+function showLogin(){stopMusic();$("authMsg").textContent=FB_ON?"":"⚠️ База данных не подключена. Заполни FB_CONFIG в коде (см. инструкцию).";pickAv(selAv);$("prof").classList.add("show")}
+function readCreds(){const l=$("lLogin").value.trim().toLowerCase(),p=$("lPass").value;
+ if(!/^[a-z0-9_]{3,16}$/.test(l)){toast("Логин: 3–16 символов, латиница, цифры или _");return null}
+ if(p.length<6){toast("Пароль: минимум 6 символов");return null}return[l,p]}
+const ERR={"auth/invalid-credential":"Неверный логин или пароль","auth/invalid-login-credentials":"Неверный логин или пароль","auth/wrong-password":"Неверный логин или пароль","auth/user-not-found":"Такого игрока нет","auth/email-already-in-use":"Этот логин уже занят","auth/too-many-requests":"Слишком много попыток, подожди немного","auth/network-request-failed":"Нет подключения к интернету","auth/operation-not-allowed":"В Firebase не включён вход по Email/Password"};
+const errT=e=>ERR[e.code]||e.message;
+async function doLogin(){if(!auth)return toast("База не подключена");const c=readCreds();if(!c)return;ac();
+ try{await auth.signInWithEmailAndPassword(toEmail(c[0]),c[1])}catch(e){toast(errT(e))}}
+async function doRegister(){if(!auth)return toast("База не подключена");const c=readCreds();if(!c)return;ac();
+ pendingReg={name:($("newName").value.trim()||c[0]).slice(0,16),avatar:selAv};
+ try{await auth.createUserWithEmailAndPassword(toEmail(c[0]),c[1])}catch(e){pendingReg=null;toast(errT(e))}}
+function logout(){stopMusic();if(auth)auth.signOut();else showLogin()}
+async function onUser(u){
+ if(unsubMe){unsubMe();unsubMe=null}
+ if(!u){S=null;isAdm=false;updAdminNav();showLogin();return}
+ const login=u.email.split("@")[0];isAdm=login===ADMIN_LOGIN;
+ const ref=fs.collection("users").doc(u.uid);
+ try{const snap=await ref.get();
+  if(!snap.exists){const r=pendingReg||{name:login,avatar:0};S=newPlayer(u.uid,login,r.name,r.avatar);pendingReg=null;S.score=0;
+   const d=Object.assign({},S);delete d.id;await ref.set(d)}
+  else S=Object.assign(newPlayer(u.uid,login,login,0),snap.data(),{id:u.uid});
+ }catch(e){toast("Ошибка загрузки: "+e.code);return}
+ unsubMe=ref.onSnapshot(s=>{const d=s.data();if(S&&d&&d.adminRev&&d.adminRev!==S.adminRev){Object.assign(S,d,{id:u.uid});render();startMusic();toast("🛡️ Администратор изменил твой прогресс")}});
+ $("lPass").value="";$("prof").classList.remove("show");updAdminNav();newP();render();startMusic();loadBoard()}
+
+// ===== ТАБЛИЦА ЛИДЕРОВ =====
+async function loadBoard(){if(!fs||!S)return;
+ try{const q=await fs.collection("users").orderBy("score","desc").limit(200).get();
+  allUsers=q.docs.map(d=>Object.assign(d.data(),{id:d.id}));renderBoard();if(isAdm)renderAdmin()}
+ catch(e){$("board").innerHTML='<p class="small no">Не удалось загрузить: '+esc(e.code||e.message)+'</p>'}}
+function renderBoard(){if(!S)return;
+ const rows=allUsers.filter(u=>u.login!==ADMIN_LOGIN).map(u=>u.id===S.id?Object.assign({},S,{score:score(S)}):u);
+ if(!isAdm&&!rows.some(r=>r.id===S.id))rows.push(Object.assign({},S,{score:score(S)}));
+ rows.sort((x,y)=>(y.score||0)-(x.score||0));
+ $("board").innerHTML=rows.map((r,i)=>`<div class="pl" style="${r.id===S.id?'border:1px solid #ffcc33':''}"><div class="rank">${["🥇","🥈","🥉"][i]||i+1}</div><div class="e">${(AVATARS[r.avatar]||["❓"])[0]}</div><div style="flex:1"><b>${esc(r.name)}</b><br><span class="small">Боссов: ${r.won?10:r.boss}/10 · 💪${r.str} ⚡${r.agi} 🧠${r.int}</span></div><b>${r.score||0}</b></div>`).join("")||'<p class="small">Пока пусто</p>'}
+
+// ===== АДМИН-ПАНЕЛЬ =====
+function updAdminNav(){$("navAdm").style.display=isAdm?"":"none";if(!isAdm&&$("p-admin").classList.contains("on"))go("fight",document.querySelector("nav button"))}
+function admFill(){$("admBoss").innerHTML=BOSSES.map((b,i)=>`<option value="${i}">${b.lvl}. ${b.emoji} ${b.name} (❤️${b.hp})</option>`).join("")}
+function admJump(){if(!isAdm)return;const i=+$("admBoss").value;S.boss=i;S.hp=BOSSES[i].hp;S.won=false;save();startMusic();go("fight",document.querySelector("nav button"));toast("🛡️ Тест: "+BOSSES[i].name)}
+function admKill(){if(!isAdm)return;if(S.won)return toast("Игра уже пройдена, выбери босса");const b=BOSSES[S.boss];S.hp=0;S.totalDmg=(S.totalDmg||0);bossDefeated(b);save();render()}
+function admRestore(){if(!isAdm||S.won)return;S.hp=BOSSES[S.boss].hp;save();render();toast("❤️ Здоровье восстановлено")}
+function renderAdmin(){$("admList").innerHTML=allUsers.map(u=>`<div class="card" style="margin:8px 0">
+ <b>${(AVATARS[u.avatar]||["❓"])[0]} ${esc(u.name)}</b> <span class="small">@${esc(u.login||"?")} · ${u.won?"🏆 пройдено":"босс "+(u.boss+1)}</span>
+ <div class="row"><label>💪<input type="number" min="0" id="a_s_${u.id}" value="${u.str}"></label><label>⚡<input type="number" min="0" id="a_a_${u.id}" value="${u.agi}"></label><label>🧠<input type="number" min="0" id="a_i_${u.id}" value="${u.int}"></label></div>
+ <select id="a_b_${u.id}">${BOSSES.map((b,i)=>`<option value="${i}" ${!u.won&&i===u.boss?"selected":""}>Босс ${b.lvl}: ${b.name}</option>`).join("")}<option value="10" ${u.won?"selected":""}>🏆 Игра пройдена</option></select>
+ <div class="row"><button onclick="admSave('${u.id}')">💾 Сохранить</button><button style="background:#b33" onclick="admReset('${u.id}')">♻️ Обнулить</button></div></div>`).join("")}
+async function admWrite(id,data){if(!isAdm)return;const u=allUsers.find(x=>x.id===id)||{};data.adminRev=Date.now();data.score=score(Object.assign({},u,data));
+ try{await fs.collection("users").doc(id).update(data);if(id===S.id)Object.assign(S,data);toast("✅ Сохранено");render();loadBoard()}catch(e){toast("Ошибка: "+e.code)}}
+function admSave(id){const u=allUsers.find(x=>x.id===id);const v=k=>Math.max(0,parseInt($(`a_${k}_${id}`).value)||0);const b=+$("a_b_"+id).value;
+ const d={str:v("s"),agi:v("a"),int:v("i")};
+ if(b===10){d.won=true;d.boss=9;d.hp=0}else if(b!==u.boss||u.won){d.won=false;d.boss=b;d.hp=BOSSES[b].hp}
+ admWrite(id,d)}
+function admReset(id){const u=allUsers.find(x=>x.id===id);if(!confirm(`Обнулить весь прогресс игрока «${u.name}»?`))return;
+ admWrite(id,{str:0,agi:0,int:0,boss:0,hp:BOSSES[0].hp,won:false,lastAtk:"",day:"",gain:{str:0,agi:0,int:0},hist:[],totalDmg:0})}
+
+const score=p=>(p.won?10:p.boss)*1000+(p.totalDmg||0)+(p.str+p.agi+p.int)*10;
+
+function renderExtra(){
+ $("me").textContent=AVATARS[S.avatar][0]+" "+S.name;$("heroAv").textContent=AVATARS[S.avatar][0];$("mus").textContent=DB.music?"🔊":"🔇";
+ renderBoard();
+ avGrid("avGrid2",S.avatar,"changeAv")}
+
+/* коды друзей заменены онлайн-базой */
+function _unusedCode(){const b=btoa(unescape(encodeURIComponent(JSON.stringify({n:S.name,a:S.avatar,s:S.str,g:S.agi,i:S.int,b:S.won?10:S.boss,sc:score(S),t:today()}))));return "FB1-"+b+"-"+hash(b)}
+
+document.addEventListener("pointerdown",()=>{if(!AC&&ac()&&S)startMusic()},{once:true});
+if("speechSynthesis" in window)speechSynthesis.getVoices();
+$("lPass").onkeydown=e=>{if(e.key==="Enter")doLogin()};
+fillEx();admFill();
+if(auth)auth.onAuthStateChanged(onUser);else showLogin();
+</script>
+</body>
+</html>
